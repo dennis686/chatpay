@@ -1,5 +1,5 @@
 (function () {
-  var form = document.getElementById('apply');
+  var form = document.getElementById('applyForm');
   var msg = document.getElementById('msg');
   var btn = document.getElementById('submit');
   var fields = ['fullName','email','phone','age','language','provider','momoNumber','momoConfirm','consent'];
