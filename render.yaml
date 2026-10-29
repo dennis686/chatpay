@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: chatpay
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chatpay-db
+          property: connectionString
+databases:
+  - name: chatpay-db
+    plan: free

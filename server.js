@@ -1,5 +1,4 @@
 require('dotenv').config();
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
@@ -9,19 +8,41 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
-const DATA_DIR = path.join(__dirname, 'data');
-const DB_FILE = path.join(DATA_DIR, 'applications.json');
+const { Pool } = require('pg');
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '[]');
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL is not set. Add your PostgreSQL connection string to .env');
+  process.exit(1);
+}
+// Render's external URLs need SSL; internal URLs and local databases do not.
+const useSsl = /render\.com|neon\.tech|supabase\.co/.test(process.env.DATABASE_URL);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: useSsl ? { rejectUnauthorized: false } : false
+});
 
-const readDb = () => JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-// Write to temp file then rename, so a crash never corrupts the data.
-const writeDb = (rows) => {
-  const tmp = DB_FILE + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(rows, null, 2));
-  fs.renameSync(tmp, DB_FILE);
-};
+const initDb = () => pool.query(`
+  CREATE TABLE IF NOT EXISTS applications (
+    id UUID PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    status TEXT NOT NULL DEFAULT 'new',
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    phone TEXT NOT NULL UNIQUE,
+    age INT NOT NULL,
+    language TEXT NOT NULL,
+    experience TEXT NOT NULL DEFAULT '',
+    provider TEXT NOT NULL,
+    momo_number TEXT NOT NULL
+  )`);
+
+const toApi = r => ({
+  id: r.id, createdAt: r.created_at.toISOString(), status: r.status,
+  fullName: r.full_name, email: r.email, phone: r.phone, age: r.age,
+  language: r.language, experience: r.experience, provider: r.provider, momoNumber: r.momo_number
+});
+const listApplications = async () =>
+  (await pool.query('SELECT * FROM applications ORDER BY created_at ASC')).rows.map(toApi);
 
 app.set('trust proxy', 1);
 app.use(helmet({
@@ -87,28 +108,27 @@ const applyLimiter = rateLimit({
   message: { ok: false, message: 'Too many attempts. Please try again later.' }
 });
 
-app.post('/api/apply', applyLimiter, (req, res) => {
+app.post('/api/apply', applyLimiter, async (req, res) => {
   // Honeypot: real users never fill this hidden field.
   if (req.body.website) return res.json({ ok: true, message: 'Application received.' });
 
   const { errors, out } = validate(req.body || {});
   if (Object.keys(errors).length) return res.status(400).json({ ok: false, errors });
 
-  const rows = readDb();
-  if (rows.some(r => r.email === out.email || r.phone === out.phone)) {
-    return res.status(409).json({ ok: false, message: 'An application with this email or phone number already exists.' });
+  try {
+    await pool.query(
+      `INSERT INTO applications (id, full_name, email, phone, age, language, experience, provider, momo_number)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [crypto.randomUUID(), out.fullName, out.email, out.phone, out.age, out.language, out.experience, out.provider, out.momoNumber]
+    );
+    res.status(201).json({ ok: true, message: 'Application received. We will contact you by email or phone with the next steps.' });
+  } catch (e) {
+    if (e.code === '23505') {
+      return res.status(409).json({ ok: false, message: 'An application with this email or phone number already exists.' });
+    }
+    console.error(e);
+    res.status(500).json({ ok: false, message: 'Server error. Please try again.' });
   }
-  const record = {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    status: 'new',
-    fullName: out.fullName, email: out.email, phone: out.phone, age: out.age,
-    language: out.language, experience: out.experience,
-    provider: out.provider, momoNumber: out.momoNumber
-  };
-  rows.push(record);
-  writeDb(rows);
-  res.status(201).json({ ok: true, message: 'Application received. We will contact you by email or phone with the next steps.' });
 });
 
 function requireAdmin(req, res, next) {
@@ -120,21 +140,21 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-app.get('/api/admin/applications', requireAdmin, (req, res) => res.json(readDb()));
+const wrap = fn => (req, res) => fn(req, res).catch(e => { console.error(e); res.status(500).json({ ok: false, message: 'Server error' }); });
 
-app.patch('/api/admin/applications/:id', requireAdmin, (req, res) => {
-  const allowed = ['new', 'contacted', 'onboarded', 'rejected'];
+app.get('/api/admin/applications', requireAdmin, wrap(async (req, res) => res.json(await listApplications())));
+
+app.patch('/api/admin/applications/:id', requireAdmin, wrap(async (req, res) => {
+  const allowed = ['new', 'contacted', 'onboarded', 'paid', 'rejected'];
   if (!allowed.includes(req.body.status)) return res.status(400).json({ ok: false, message: 'Invalid status' });
-  const rows = readDb();
-  const row = rows.find(r => r.id === req.params.id);
-  if (!row) return res.status(404).json({ ok: false, message: 'Not found' });
-  row.status = req.body.status;
-  writeDb(rows);
-  res.json(row);
-});
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(404).json({ ok: false, message: 'Not found' });
+  const r = await pool.query('UPDATE applications SET status=$1 WHERE id=$2 RETURNING *', [req.body.status, req.params.id]);
+  if (!r.rows.length) return res.status(404).json({ ok: false, message: 'Not found' });
+  res.json(toApi(r.rows[0]));
+}));
 
-app.get('/api/admin/export.csv', requireAdmin, (req, res) => {
-  const rows = readDb();
+app.get('/api/admin/export.csv', requireAdmin, wrap(async (req, res) => {
+  const rows = await listApplications();
   const cols = ['createdAt', 'status', 'fullName', 'email', 'phone', 'age', 'language', 'provider', 'momoNumber', 'experience'];
   const esc = v => {
     let s = String(v ?? '');
@@ -143,8 +163,10 @@ app.get('/api/admin/export.csv', requireAdmin, (req, res) => {
   };
   const csv = [cols.join(','), ...rows.map(r => cols.map(c => esc(r[c])).join(','))].join('\n');
   res.type('text/csv').attachment('chatpay-applications.csv').send(csv);
-});
+}));
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/health', wrap(async (req, res) => { await pool.query('SELECT 1'); res.json({ ok: true }); }));
 
-app.listen(PORT, () => console.log(`Chatpay running on http://localhost:${PORT}`));
+initDb()
+  .then(() => app.listen(PORT, () => console.log(`Chatpay running on port ${PORT}`)))
+  .catch(e => { console.error('Database connection failed:', e.message); process.exit(1); });

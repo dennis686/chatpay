@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Chatpay admin</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0}
+.bar input,.bar select{width:auto;flex:1;min-width:150px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.stats div{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px}
+.stats b{display:block;font-size:1.6rem;font-family:Georgia,serif}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+td.wrapc{white-space:normal;min-width:200px;max-width:320px}
+th{background:var(--bg)}
+select.st{padding:6px;width:auto}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.8rem;background:var(--line)}
+.pill.airtel{background:#fde0e0;color:#8a0000}.pill.mtn{background:#fff3c2;color:#6b5500}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header class="nav"><a class="logo" href="/admin.html">Chat<b>pay</b> admin</a><button class="btn alt hidden" id="logout" type="button">Sign out</button></header>
+<main class="wrap">
+  <form id="login" style="max-width:420px;margin:40px auto">
+    <h2>Admin sign in</h2>
+    <div><label for="token">Admin token</label><input id="token" type="password" autocomplete="current-password" required></div>
+    <span class="err" id="loginErr"></span>
+    <button class="btn" type="submit">Sign in</button>
+  </form>
+
+  <div id="panel" class="hidden">
+    <div class="stats" id="stats"></div>
+    <div class="bar">
+      <input id="q" type="search" placeholder="Search name, email, phone" aria-label="Search">
+      <select id="fs" aria-label="Filter by status"><option value="">All statuses</option><option>new</option><option>contacted</option><option>onboarded</option><option>paid</option><option>rejected</option></select>
+      <select id="fp" aria-label="Filter by provider"><option value="">All providers</option><option value="airtel">Airtel Money</option><option value="mtn">MTN MoMo</option></select>
+      <button class="btn" id="csv" type="button">Download CSV</button>
+    </div>
+    <p class="note" id="count"></p>
+    <div class="tw"><table>
+      <thead><tr><th>Date</th><th>Name</th><th>Contact</th><th>Age</th><th>Language</th><th>Pay to</th><th>Experience</th><th>Status</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </div>
+</main>
+<script src="/admin.js"></script>
+</body>
+</html>
