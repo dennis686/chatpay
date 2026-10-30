@@ -17,7 +17,14 @@ Open /admin.html and sign in with ADMIN_TOKEN. API routes (header `Authorization
 Workers create a password when they register and sign in at /dashboard.html. They see their status, payout method
 (number partly hidden) and the earnings/bonuses you record. Record them in /admin.html with the "+ earning" / "+ bonus"
 buttons, send the money from your own mobile money account, then press "Mark paid".
+Add real work listings in /admin.html ("+ Add job"); workers see them on their dashboard, with a warning if pay or employer is missing.
+Optional env vars PAYOUT_SCHEDULE and MIN_PAYOUT appear in the "How you get paid" box.
 Set SESSION_SECRET (Render generates one from render.yaml). Workers who registered before this update have no password.
+
+## Workplace (admin-approved access)
+/workplace.html shows tasks only to workers you approve. In /admin.html press "Grant access" on a worker after verifying their
+details (Revoke removes it). Add tasks with "+ Add task"; worker answers appear under Submissions. The dashboard shows the
+"Go to your workplace" button only to approved workers. Access is enforced on the server, not just hidden.
 
 ## Deploy on Render
 Use the included render.yaml (New > Blueprint), which creates the web service and the PostgreSQL database.

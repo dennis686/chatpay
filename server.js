@@ -47,12 +47,40 @@ const initDb = () => pool.query(`
       status TEXT NOT NULL DEFAULT 'pending',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       paid_at TIMESTAMPTZ
+    )`))
+  .then(() => pool.query(`
+    CREATE TABLE IF NOT EXISTS jobs (
+      id UUID PRIMARY KEY,
+      title TEXT NOT NULL,
+      employer TEXT NOT NULL DEFAULT '',
+      pay TEXT NOT NULL DEFAULT '',
+      schedule TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`))
+  .then(() => pool.query('ALTER TABLE applications ADD COLUMN IF NOT EXISTS workplace_access BOOLEAN NOT NULL DEFAULT false'))
+  .then(() => pool.query(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id UUID PRIMARY KEY,
+      title TEXT NOT NULL,
+      instructions TEXT NOT NULL DEFAULT '',
+      pay TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`))
+  .then(() => pool.query(`
+    CREATE TABLE IF NOT EXISTS submissions (
+      id UUID PRIMARY KEY,
+      task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      application_id UUID NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+      answer TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (task_id, application_id)
     )`));
 
 const toApi = r => ({
   id: r.id, createdAt: r.created_at.toISOString(), status: r.status,
   fullName: r.full_name, email: r.email, phone: r.phone, age: r.age,
-  language: r.language, experience: r.experience, provider: r.provider, momoNumber: r.momo_number
+  language: r.language, experience: r.experience, provider: r.provider, momoNumber: r.momo_number,
+  workplaceAccess: !!r.workplace_access
 });
 const listApplications = async () =>
   (await pool.query('SELECT * FROM applications ORDER BY created_at ASC')).rows.map(toApi);
@@ -287,11 +315,14 @@ app.get('/api/me', wrap(async (req, res) => {
   const a = id && (await pool.query('SELECT * FROM applications WHERE id=$1', [id])).rows[0];
   if (!a) return res.status(401).json({ ok: false });
   const p = (await pool.query('SELECT kind, amount, note, status, created_at FROM payouts WHERE application_id=$1 ORDER BY created_at DESC', [id])).rows;
+  const jobs = (await pool.query('SELECT id, title, employer, pay, schedule FROM jobs ORDER BY created_at DESC')).rows;
   const sum = st => p.filter(x => x.status === st).reduce((t, x) => t + Number(x.amount), 0);
   res.json({
     ok: true,
-    profile: { fullName: a.full_name, email: a.email, status: a.status, language: a.language, provider: a.provider, momoMasked: maskNum(a.momo_number), createdAt: a.created_at.toISOString() },
+    profile: { fullName: a.full_name, email: a.email, status: a.status, language: a.language, provider: a.provider, momoMasked: maskNum(a.momo_number), workplaceAccess: !!a.workplace_access, createdAt: a.created_at.toISOString() },
     totals: { pending: sum('pending'), paid: sum('paid') },
+    jobs,
+    payment: { schedule: process.env.PAYOUT_SCHEDULE || '', minimum: process.env.MIN_PAYOUT || '' },
     payouts: p.map(x => ({ kind: x.kind, amount: Number(x.amount), note: x.note, status: x.status, createdAt: x.created_at.toISOString() }))
   });
 }));
@@ -321,6 +352,88 @@ app.patch('/api/admin/payouts/:id', requireAdmin, wrap(async (req, res) => {
   const r = await pool.query("UPDATE payouts SET status='paid', paid_at=now() WHERE id=$1 RETURNING id", [req.params.id]);
   if (!r.rows.length) return res.status(404).json({ ok: false, message: 'Not found' });
   res.json({ ok: true });
+}));
+
+app.get('/api/admin/jobs', requireAdmin, wrap(async (req, res) =>
+  res.json((await pool.query('SELECT id, title, employer, pay, schedule FROM jobs ORDER BY created_at DESC')).rows)));
+
+app.post('/api/admin/jobs', requireAdmin, wrap(async (req, res) => {
+  const title = clean(req.body.title, 120);
+  if (title.length < 3) return res.status(400).json({ ok: false, message: 'Enter a job title.' });
+  await pool.query('INSERT INTO jobs (id, title, employer, pay, schedule) VALUES ($1,$2,$3,$4,$5)',
+    [crypto.randomUUID(), title, clean(req.body.employer, 100), clean(req.body.pay, 100), clean(req.body.schedule, 100)]);
+  res.status(201).json({ ok: true });
+}));
+
+app.delete('/api/admin/jobs/:id', requireAdmin, wrap(async (req, res) => {
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(404).json({ ok: false, message: 'Not found' });
+  await pool.query('DELETE FROM jobs WHERE id=$1', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+// ---- Workplace: only workers the admin has approved ----
+async function requireWorker(req, res, next) {
+  try {
+    const id = readSession(req);
+    const a = id && (await pool.query('SELECT id, workplace_access FROM applications WHERE id=$1', [id])).rows[0];
+    if (!a) return res.status(401).json({ ok: false, message: 'Please sign in.' });
+    if (!a.workplace_access) return res.status(403).json({ ok: false, message: 'Your workplace has not been opened yet.' });
+    req.workerId = a.id; next();
+  } catch (e) { console.error(e); res.status(500).json({ ok: false, message: 'Server error' }); }
+}
+const submitLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false, message: { ok: false, message: 'Too many submissions. Try again later.' } });
+
+app.get('/api/workplace', requireWorker, wrap(async (req, res) => {
+  const tasks = (await pool.query('SELECT id, title, instructions, pay FROM tasks ORDER BY created_at DESC')).rows;
+  const done = (await pool.query('SELECT task_id FROM submissions WHERE application_id=$1', [req.workerId])).rows.map(r => r.task_id);
+  res.json({ ok: true, tasks: tasks.map(t => ({ ...t, submitted: done.includes(t.id) })) });
+}));
+
+app.post('/api/workplace/tasks/:id/submit', submitLimiter, requireWorker, wrap(async (req, res) => {
+  const answer = String(req.body.answer || '').trim().slice(0, 3000);
+  if (answer.length < 5) return res.status(400).json({ ok: false, message: 'Write your answer first (at least 5 characters).' });
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(404).json({ ok: false, message: 'Task not found' });
+  const t = await pool.query('SELECT 1 FROM tasks WHERE id=$1', [req.params.id]);
+  if (!t.rows.length) return res.status(404).json({ ok: false, message: 'Task not found' });
+  try {
+    await pool.query('INSERT INTO submissions (id, task_id, application_id, answer) VALUES ($1,$2,$3,$4)', [crypto.randomUUID(), req.params.id, req.workerId, answer]);
+  } catch (e) {
+    if (e.code === '23505') return res.status(409).json({ ok: false, message: 'You have already submitted this task.' });
+    throw e;
+  }
+  res.status(201).json({ ok: true });
+}));
+
+app.patch('/api/admin/applications/:id/access', requireAdmin, wrap(async (req, res) => {
+  if (typeof req.body.access !== 'boolean') return res.status(400).json({ ok: false, message: 'Invalid request' });
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(404).json({ ok: false, message: 'Not found' });
+  const r = await pool.query('UPDATE applications SET workplace_access=$1 WHERE id=$2 RETURNING id', [req.body.access, req.params.id]);
+  if (!r.rows.length) return res.status(404).json({ ok: false, message: 'Not found' });
+  res.json({ ok: true });
+}));
+
+app.get('/api/admin/tasks', requireAdmin, wrap(async (req, res) =>
+  res.json((await pool.query('SELECT id, title, instructions, pay FROM tasks ORDER BY created_at DESC')).rows)));
+
+app.post('/api/admin/tasks', requireAdmin, wrap(async (req, res) => {
+  const title = clean(req.body.title, 120);
+  if (title.length < 3) return res.status(400).json({ ok: false, message: 'Enter a task title.' });
+  await pool.query('INSERT INTO tasks (id, title, instructions, pay) VALUES ($1,$2,$3,$4)',
+    [crypto.randomUUID(), title, String(req.body.instructions || '').trim().slice(0, 2000), clean(req.body.pay, 100)]);
+  res.status(201).json({ ok: true });
+}));
+
+app.delete('/api/admin/tasks/:id', requireAdmin, wrap(async (req, res) => {
+  if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(404).json({ ok: false, message: 'Not found' });
+  await pool.query('DELETE FROM tasks WHERE id=$1', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+app.get('/api/admin/submissions', requireAdmin, wrap(async (req, res) => {
+  const r = await pool.query(`SELECT s.id, s.answer, s.created_at, t.title, a.full_name
+    FROM submissions s JOIN tasks t ON t.id = s.task_id JOIN applications a ON a.id = s.application_id
+    ORDER BY s.created_at DESC LIMIT 200`);
+  res.json(r.rows.map(x => ({ id: x.id, answer: x.answer, createdAt: x.created_at.toISOString(), task: x.title, fullName: x.full_name })));
 }));
 
 app.get('/api/health', wrap(async (req, res) => { await pool.query('SELECT 1'); res.json({ ok: true }); }));

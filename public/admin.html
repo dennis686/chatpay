@@ -43,13 +43,30 @@ select.st{padding:6px;width:auto}
     </div>
     <p class="note" id="count"></p>
     <div class="tw"><table>
-      <thead><tr><th>Date</th><th>Name</th><th>Contact</th><th>Age</th><th>Language</th><th>Pay to</th><th>Experience</th><th>Status</th><th>Add</th></tr></thead>
+      <thead><tr><th>Date</th><th>Name</th><th>Contact</th><th>Age</th><th>Language</th><th>Pay to</th><th>Experience</th><th>Status</th><th>Add</th><th>Workplace</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
     <h2 style="margin-top:36px">Payouts <span class="note" id="payTotal"></span></h2>
     <div class="tw"><table>
       <thead><tr><th>Date</th><th>Worker</th><th>Pay to</th><th>Type</th><th>Amount (ZMW)</th><th>Note</th><th>Status</th></tr></thead>
       <tbody id="pays"></tbody>
+    </table></div>
+    <h2 style="margin-top:36px">Work listings shown to workers <button class="btn alt" id="addJob" type="button" style="padding:4px 12px;margin-left:8px">+ Add job</button><button class="btn alt" id="seedJobs" type="button" style="padding:4px 12px;margin-left:8px">Load starter jobs</button></h2>
+    <p class="note">Only add real work. Always fill in the employer name and the pay, or workers see a warning.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Title</th><th>Employer</th><th>Pay</th><th>Schedule</th><th></th></tr></thead>
+      <tbody id="jobsRows"></tbody>
+    </table></div>
+    <h2 style="margin-top:36px">Workplace tasks <button class="btn alt" id="addTask" type="button" style="padding:4px 12px;margin-left:8px">+ Add task</button></h2>
+    <p class="note">Tasks appear only to workers whose workplace access you have granted.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Title</th><th>Pay</th><th>Instructions</th><th></th></tr></thead>
+      <tbody id="tasksRows"></tbody>
+    </table></div>
+    <h2 style="margin-top:36px">Submissions</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Date</th><th>Worker</th><th>Task</th><th>Answer</th></tr></thead>
+      <tbody id="subsRows"></tbody>
     </table></div>
   </div>
 </main>

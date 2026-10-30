@@ -20,6 +20,13 @@
     $('paid').textContent = money(d.totals.paid);
     $('method').textContent = NAMES[d.profile.provider] + ' ' + d.profile.momoMasked;
     $('method').style.fontSize = '1rem';
+    $('workLink').classList.toggle('hidden', !d.profile.workplaceAccess);
+    $('workLocked').classList.toggle('hidden', !!d.profile.workplaceAccess);
+    renderJobs(d.jobs);
+    var pi = [];
+    if (d.payment && d.payment.schedule) pi.push('Payout schedule: ' + d.payment.schedule + '.');
+    if (d.payment && d.payment.minimum) pi.push('Minimum payout: ' + d.payment.minimum + '.');
+    $('payInfo').textContent = pi.length ? pi.join(' ') : 'Ask support for the current payout schedule.';
     var tb = $('rows'); tb.textContent = '';
     if (!d.payouts.length) { var r0 = document.createElement('tr'); var c = td('Nothing recorded yet.'); c.colSpan = 5; r0.appendChild(c); tb.appendChild(r0); }
     d.payouts.forEach(function (p) {
@@ -30,6 +37,23 @@
       tr.appendChild(td(money(p.amount)));
       tr.appendChild(td(p.status === 'paid' ? 'Paid' : 'Pending'));
       tb.appendChild(tr);
+    });
+  }
+  function renderJobs(list) {
+    var box = $('jobs'); box.textContent = '';
+    if (!list || !list.length) { var n = document.createElement('p'); n.className = 'note'; n.textContent = 'No work is listed right now. Check back soon.'; box.appendChild(n); return; }
+    list.forEach(function (j) {
+      var c = document.createElement('div'); c.className = 'box'; c.style.marginBottom = '12px';
+      var t = document.createElement('strong'); t.textContent = j.title; c.appendChild(t);
+      var m = document.createElement('div'); m.className = 'note';
+      m.textContent = [j.employer || 'Employer not named', j.schedule].filter(Boolean).join(' · '); c.appendChild(m);
+      var p = document.createElement('div'); p.textContent = j.pay || 'Pay not stated'; p.style.fontWeight = '600'; c.appendChild(p);
+      if (!j.pay || !j.employer) {
+        var w = document.createElement('div'); w.className = 'note'; w.style.color = 'var(--err)';
+        w.textContent = 'Missing: ' + [!j.pay && 'pay', !j.employer && 'employer name'].filter(Boolean).join(' and ') + '. Ask for this in writing before you share personal details or start work.';
+        c.appendChild(w);
+      }
+      box.appendChild(c);
     });
   }
   function load() {
