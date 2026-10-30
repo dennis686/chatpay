@@ -43,16 +43,15 @@
     });
     $('count').textContent = 'Showing ' + list.length + ' of ' + data.length;
     var tb = $('rows'); tb.textContent = '';
-    if (!list.length) { var tr0 = el('tr'); var td0 = el('td', 'No applications match.'); td0.colSpan = 10; tr0.appendChild(td0); tb.appendChild(tr0); }
+    if (!list.length) { var tr0 = el('tr'); var td0 = el('td', 'No applications match.'); td0.colSpan = 6; tr0.appendChild(td0); tb.appendChild(tr0); }
     list.forEach(function (r) {
       var tr = el('tr');
-      tr.appendChild(el('td', new Date(r.createdAt).toLocaleDateString()));
-      tr.appendChild(el('td', r.fullName));
+      var nm = el('td', null, 'wrapc'); nm.appendChild(el('strong', r.fullName)); nm.appendChild(document.createElement('br'));
+      nm.appendChild(el('span', r.age + ' yrs · ' + r.language + ' · ' + new Date(r.createdAt).toLocaleDateString(), 'note'));
+      if (r.experience) { nm.appendChild(document.createElement('br')); nm.appendChild(el('span', 'Experience: ' + r.experience, 'note')); }
+      tr.appendChild(nm);
       var c = el('td'); c.appendChild(document.createTextNode(r.email)); c.appendChild(document.createElement('br')); c.appendChild(document.createTextNode(r.phone)); tr.appendChild(c);
-      tr.appendChild(el('td', r.age));
-      tr.appendChild(el('td', r.language));
       var p = el('td'); p.appendChild(el('span', r.provider === 'airtel' ? 'Airtel' : 'MTN', 'pill ' + r.provider)); p.appendChild(document.createElement('br')); p.appendChild(document.createTextNode(r.momoNumber)); tr.appendChild(p);
-      tr.appendChild(el('td', r.experience || '-', 'wrapc'));
       var s = el('td'); var sel = el('select', null, 'st'); sel.setAttribute('aria-label', 'Status for ' + r.fullName);
       STATUSES.forEach(function (o) { var op = el('option', o); op.value = o; if (o === r.status) op.selected = true; sel.appendChild(op); });
       sel.addEventListener('change', function () {
@@ -61,14 +60,13 @@
           .then(function (res) { if (!res.ok) throw 0; r.status = sel.value; render(); })
           .catch(function () { alert('Could not update status.'); sel.value = r.status; sel.disabled = false; });
       });
-      s.appendChild(sel); tr.appendChild(s);
+      s.appendChild(sel);
       var ac = el('td');
       ['earning', 'bonus'].forEach(function (k) {
         var b = el('button', '+ ' + k, 'btn alt'); b.type = 'button'; b.style.padding = '4px 10px'; b.style.marginRight = '6px';
         b.addEventListener('click', function () { addPayout(r, k); });
         ac.appendChild(b);
       });
-      tr.appendChild(ac);
       var wc = el('td'); var wb = el('button', r.workplaceAccess ? 'Revoke' : 'Grant access', r.workplaceAccess ? 'btn alt' : 'btn'); wb.type = 'button'; wb.style.padding = '4px 10px';
       wb.addEventListener('click', function () {
         var grant = !r.workplaceAccess;
@@ -77,7 +75,7 @@
           .then(function (res) { if (!res.ok) throw 0; r.workplaceAccess = grant; render(); })
           .catch(function () { alert('Could not change access.'); });
       });
-      wc.appendChild(wb); tr.appendChild(wc);
+      wc.appendChild(wb); tr.appendChild(s); tr.appendChild(wc); tr.appendChild(ac);
       tb.appendChild(tr);
     });
   }

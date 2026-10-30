@@ -14,7 +14,8 @@
 .stats b{display:block;font-size:1.6rem;font-family:Georgia,serif}
 .tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:6px}
 table{border-collapse:collapse;width:100%;font-size:.92rem}
-th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:normal}
+.wrap{max-width:1200px}
 td.wrapc{white-space:normal;min-width:200px;max-width:320px}
 th{background:var(--bg)}
 select.st{padding:6px;width:auto}
@@ -43,7 +44,7 @@ select.st{padding:6px;width:auto}
     </div>
     <p class="note" id="count"></p>
     <div class="tw"><table>
-      <thead><tr><th>Date</th><th>Name</th><th>Contact</th><th>Age</th><th>Language</th><th>Pay to</th><th>Experience</th><th>Status</th><th>Add</th><th>Workplace</th></tr></thead>
+      <thead><tr><th>Worker</th><th>Contact</th><th>Pay to</th><th>Status</th><th>Workplace access</th><th>Add pay</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
     <h2 style="margin-top:36px">Payouts <span class="note" id="payTotal"></span></h2>
