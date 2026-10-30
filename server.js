@@ -108,6 +108,60 @@ const applyLimiter = rateLimit({
   message: { ok: false, message: 'Too many attempts. Please try again later.' }
 });
 
+// ---- Confirmation email (Brevo HTTP API; works on hosts that block SMTP) ----
+const escHtml = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+async function sendConfirmation(a) {
+  const key = process.env.BREVO_API_KEY;
+  const fromEmail = process.env.MAIL_FROM_EMAIL;
+  if (!key || !fromEmail) { console.log('Email not configured; skipping confirmation.'); return; }
+  const fromName = process.env.MAIL_FROM_NAME || 'Chatpay';
+  const support = process.env.SUPPORT_EMAIL || fromEmail;
+  const first = a.fullName.split(' ')[0];
+  const provider = a.provider === 'airtel' ? 'Airtel Money' : 'MTN MoMo';
+  const masked = a.momoNumber.slice(0, 7) + '***' + a.momoNumber.slice(-3);
+
+  const text = [
+    `Hello ${first},`, '',
+    'Thank you for applying to Chatpay. Your registration has been received.', '',
+    'What happens next:',
+    '1. Our team reviews your application.',
+    '2. We contact you by email or phone with onboarding details.',
+    '3. Once onboarded, you can start chatting and teaching.', '',
+    `Payments will go to your ${provider} number ${masked}.`, '',
+    'Important:',
+    '- Chatpay never charges a fee to join or start working.',
+    '- We will never ask for your mobile money PIN or password.', '',
+    `Questions? Reply to this email or write to ${support}.`, '',
+    'The Chatpay team'
+  ].join('\n');
+
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#14231b;line-height:1.55">
+    <h2 style="color:#0f4a30">Registration received</h2>
+    <p>Hello ${escHtml(first)},</p>
+    <p>Thank you for applying to Chatpay. Your registration has been received.</p>
+    <p><strong>What happens next</strong></p>
+    <ol><li>Our team reviews your application.</li><li>We contact you by email or phone with onboarding details.</li><li>Once onboarded, you can start chatting and teaching.</li></ol>
+    <p>Payments will go to your <strong>${provider}</strong> number <strong>${escHtml(masked)}</strong>.</p>
+    <p style="background:#f3f6f4;padding:12px;border-left:4px solid #c4733a"><strong>Stay safe:</strong> Chatpay never charges a fee to join or start working, and we will never ask for your mobile money PIN or password.</p>
+    <p>Questions? Reply to this email or write to ${escHtml(support)}.</p>
+    <p>The Chatpay team</p></div>`;
+
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: { 'api-key': key, 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: a.email, name: a.fullName }],
+      replyTo: { email: support },
+      subject: 'Your Chatpay registration was received',
+      htmlContent: html,
+      textContent: text
+    })
+  });
+  if (!res.ok) throw new Error('Brevo responded ' + res.status + ': ' + (await res.text()).slice(0, 200));
+}
+
 app.post('/api/apply', applyLimiter, async (req, res) => {
   // Honeypot: real users never fill this hidden field.
   if (req.body.website) return res.json({ ok: true, message: 'Application received.' });
@@ -121,7 +175,12 @@ app.post('/api/apply', applyLimiter, async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [crypto.randomUUID(), out.fullName, out.email, out.phone, out.age, out.language, out.experience, out.provider, out.momoNumber]
     );
-    res.status(201).json({ ok: true, message: 'Application received. We will contact you by email or phone with the next steps.' });
+    // Send the email in the background; a mail failure must never undo a saved application.
+    sendConfirmation(out).catch(e => console.error('Confirmation email failed:', e.message));
+    const emailOn = !!(process.env.BREVO_API_KEY && process.env.MAIL_FROM_EMAIL);
+    res.status(201).json({ ok: true, message: emailOn
+      ? 'Application received. A confirmation email is on its way. We will contact you with the next steps.'
+      : 'Application received. We will contact you by email or phone with the next steps.' });
   } catch (e) {
     if (e.code === '23505') {
       return res.status(409).json({ ok: false, message: 'An application with this email or phone number already exists.' });

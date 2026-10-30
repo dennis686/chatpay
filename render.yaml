@@ -11,6 +11,14 @@ services:
         value: 20
       - key: ADMIN_TOKEN
         generateValue: true
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_EMAIL
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Chatpay
+      - key: SUPPORT_EMAIL
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: chatpay-db

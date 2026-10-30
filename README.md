@@ -18,6 +18,10 @@ Use the included render.yaml (New > Blueprint), which creates the web service an
 ADMIN_TOKEN is generated for you: Render dashboard > chatpay > Environment.
 The table is created automatically on first start.
 
+## Confirmation emails
+Set BREVO_API_KEY, MAIL_FROM_EMAIL (a sender verified in Brevo), MAIL_FROM_NAME and SUPPORT_EMAIL.
+If BREVO_API_KEY is empty, applications still save and no email is sent.
+
 ## Before launch
 Fill in pay rates, payout schedule, support contacts, registration number, and write real Terms and Privacy pages.
 Never charge applicants any fee to join or work.
