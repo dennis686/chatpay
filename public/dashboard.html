@@ -32,23 +32,12 @@ th{background:var(--bg)}
 
   <div id="panel" class="hidden">
     <h2 id="hello"></h2>
-    <p>welcome to chatpay your details are veryfied 
-      you atre required to pay 100kwacha 
-    </p>
-    <h3 >you payment procedure</h3>
-    <p>. TRANSFER PROCESS:*
-- Dial _115# (Airtel Zambia) or _303# (MTN Zambia)
-- Select: Send Money > International Remittance > Kenya > Airtel Money Kenya
-- Enter receiver number: 254762320914
-- Enter amount and confirm 
-VERIFICATION AFTER SENDING:*
-Once sent, please share:
-- Transaction ID / Reference
-- Screenshot of confirmation message
-- Amount sent</p>
     <p>Application status: <span class="pill" id="status"></span></p>
-    
     <p class="note" id="statusText"></p>
+    <div class="box" id="workBox" style="margin:12px 0">
+      <a class="btn hidden" id="workLink" href="/workplace.html">Go to your workplace</a>
+      <p class="note" id="workLocked" style="margin:0">Your workplace opens after the Chatpay team verifies your details and approves you. We will contact you.</p>
+    </div>
     <div class="stats">
       <div><b id="pending">0</b>Pending (ZMW)</div>
       <div><b id="paid">0</b>Paid (ZMW)</div>
@@ -59,6 +48,29 @@ Once sent, please share:
       <thead><tr><th>Date</th><th>Type</th><th>Note</th><th>Amount (ZMW)</th><th>Status</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
+    <h3 style="margin-top:36px">Available work</h3>
+    <div id="jobs"></div>
+
+    <h3 style="margin-top:36px">How you get paid</h3>
+    <div class="box">
+      <ol style="margin:0 0 10px;padding-left:20px">
+        <li>The Chatpay team reviews your work.</li>
+        <li>The amount appears in the table above as <strong>Pending</strong>.</li>
+        <li>Chatpay sends it in Zambian kwacha to the Airtel Money or MTN MoMo number shown above.</li>
+        <li>The status changes to <strong>Paid</strong>. If the money has not arrived, contact support with the date and amount.</li>
+      </ol>
+      <p class="note" id="payInfo"></p>
+      <p class="note">To change your payout number, contact support. We will confirm it is really you before changing it.</p>
+    </div>
+
+    <h3 style="margin-top:36px">Stay safe</h3>
+    <div class="box"><ul style="margin:0;padding-left:20px">
+      <li>A real employer never asks you to pay a fee to get a job or training.</li>
+      <li>Never share your mobile money PIN or the one-time code sent to your phone.</li>
+      <li>Get the pay, hours and employer name in writing before you start.</li>
+      <li>Start with one small paid task. Stop if the pay is delayed or the terms change.</li>
+    </ul></div>
+
     <p class="note">Amounts are entered by the Chatpay team after your work is reviewed. Questions? Contact support from the main page.</p>
   </div>
 </main>
