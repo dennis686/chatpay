@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>My Chatpay dashboard</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.stats div{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px}
+.stats b{display:block;font-size:1.7rem;font-family:Georgia,serif}
+.tw{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{background:var(--bg)}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;background:var(--line);font-weight:600}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header class="nav"><a class="logo" href="/">Chat<b>pay</b></a><button class="btn alt hidden" id="logout" type="button">Sign out</button></header>
+<main class="wrap">
+  <form id="login" style="max-width:420px;margin:30px auto">
+    <h2>Worker sign in</h2>
+    <div><label for="email">Email</label><input id="email" type="email" autocomplete="email" required></div>
+    <div><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required></div>
+    <span class="err" id="loginErr" role="alert"></span>
+    <button class="btn" type="submit">Sign in</button>
+    <p class="note">Not registered yet? <a href="/#apply">Apply here</a>. Chatpay will never ask for your mobile money PIN.</p>
+  </form>
+
+  <div id="panel" class="hidden">
+    <h2 id="hello"></h2>
+    <p>Application status: <span class="pill" id="status"></span></p>
+    <p class="note" id="statusText"></p>
+    <div class="stats">
+      <div><b id="pending">0</b>Pending (ZMW)</div>
+      <div><b id="paid">0</b>Paid (ZMW)</div>
+      <div><b id="method">-</b>Paid to</div>
+    </div>
+    <h3>Earnings and bonuses</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>Note</th><th>Amount (ZMW)</th><th>Status</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <p class="note">Amounts are entered by the Chatpay team after your work is reviewed. Questions? Contact support from the main page.</p>
+  </div>
+</main>
+<script src="/dashboard.js"></script>
+</body>
+</html>

@@ -2,7 +2,7 @@
   var form = document.getElementById('applyForm');
   var msg = document.getElementById('msg');
   var btn = document.getElementById('submit');
-  var fields = ['fullName','email','phone','age','language','provider','momoNumber','momoConfirm','consent'];
+  var fields = ['fullName','email','phone','age','language','provider','momoNumber','momoConfirm','password','passwordConfirm','consent'];
 
   function normPhone(raw) {
     var d = String(raw || '').replace(/[\s\-()]/g, '').replace(/^\+/, '');
@@ -33,6 +33,9 @@
     else if (p === 'airtel' && !/^\+260(97|77)/.test(m)) e.momoNumber = 'Airtel Money numbers start with 097 or 077.';
     else if (p === 'mtn' && !/^\+260(96|76)/.test(m)) e.momoNumber = 'MTN MoMo numbers start with 096 or 076.';
     if (m && normPhone(val('momoConfirm')) !== m) e.momoConfirm = 'The numbers do not match.';
+    var pw = form.elements.password.value;
+    if (pw.length < 8) e.password = 'Choose a password of at least 8 characters.';
+    if (form.elements.passwordConfirm.value !== pw) e.passwordConfirm = 'The passwords do not match.';
     if (!val('consent')) e.consent = 'You must accept the Terms and Privacy Policy.';
     return e;
   }
@@ -54,7 +57,7 @@
       body: JSON.stringify({
         fullName: val('fullName'), email: val('email'), phone: val('phone'), age: val('age'),
         language: val('language'), experience: val('experience'), provider: val('provider'),
-        momoNumber: val('momoNumber'), consent: val('consent'), website: val('website')
+        momoNumber: val('momoNumber'), consent: val('consent'), password: form.elements.password.value, website: val('website')
       })
     }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
       .then(function (r) {

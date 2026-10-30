@@ -25,7 +25,7 @@
       return r.json().then(function (j) {
         data = j.slice().reverse();
         $('login').classList.add('hidden'); $('panel').classList.remove('hidden'); $('logout').classList.remove('hidden');
-        render();
+        render(); loadPayouts();
       });
     }).catch(function () { $('loginErr').textContent = 'Could not reach the server.'; });
   }
@@ -43,7 +43,7 @@
     });
     $('count').textContent = 'Showing ' + list.length + ' of ' + data.length;
     var tb = $('rows'); tb.textContent = '';
-    if (!list.length) { var tr0 = el('tr'); var td0 = el('td', 'No applications match.'); td0.colSpan = 8; tr0.appendChild(td0); tb.appendChild(tr0); }
+    if (!list.length) { var tr0 = el('tr'); var td0 = el('td', 'No applications match.'); td0.colSpan = 9; tr0.appendChild(td0); tb.appendChild(tr0); }
     list.forEach(function (r) {
       var tr = el('tr');
       tr.appendChild(el('td', new Date(r.createdAt).toLocaleDateString()));
@@ -62,7 +62,51 @@
           .catch(function () { alert('Could not update status.'); sel.value = r.status; sel.disabled = false; });
       });
       s.appendChild(sel); tr.appendChild(s);
+      var ac = el('td');
+      ['earning', 'bonus'].forEach(function (k) {
+        var b = el('button', '+ ' + k, 'btn alt'); b.type = 'button'; b.style.padding = '4px 10px'; b.style.marginRight = '6px';
+        b.addEventListener('click', function () { addPayout(r, k); });
+        ac.appendChild(b);
+      });
+      tr.appendChild(ac);
       tb.appendChild(tr);
+    });
+  }
+
+  function addPayout(r, k) {
+    var amt = prompt('Amount in ZMW for ' + r.fullName + ' (' + k + ')'); if (amt === null) return;
+    var note = prompt('Note (optional)') || '';
+    api('/api/admin/applications/' + encodeURIComponent(r.id) + '/payouts', { method: 'POST', body: JSON.stringify({ kind: k, amount: amt, note: note }) })
+      .then(function (res) { return res.json().then(function (j) { if (!res.ok) throw new Error(j.message || 'Failed'); loadPayouts(); }); })
+      .catch(function (e) { alert(e.message); });
+  }
+  function loadPayouts() {
+    api('/api/admin/payouts').then(function (r) { return r.ok ? r.json() : []; }).then(renderPayouts);
+  }
+  function renderPayouts(list) {
+    var tb = $('pays'); tb.textContent = '';
+    var owed = list.filter(function (p) { return p.status === 'pending'; }).reduce(function (t, p) { return t + p.amount; }, 0);
+    $('payTotal').textContent = '(ZMW ' + owed.toFixed(2) + ' pending)';
+    list.sort(function (a, b) { return (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1); });
+    list.forEach(function (p) {
+      var tr = el('tr');
+      tr.appendChild(el('td', new Date(p.createdAt).toLocaleDateString()));
+      tr.appendChild(el('td', p.fullName));
+      tr.appendChild(el('td', (p.provider === 'airtel' ? 'Airtel ' : 'MTN ') + p.momoNumber));
+      tr.appendChild(el('td', p.kind));
+      tr.appendChild(el('td', p.amount.toFixed(2)));
+      tr.appendChild(el('td', p.note || '-', 'wrapc'));
+      var s = el('td');
+      if (p.status === 'paid') { s.textContent = 'Paid'; }
+      else {
+        var b = el('button', 'Mark paid', 'btn'); b.type = 'button'; b.style.padding = '4px 10px';
+        b.addEventListener('click', function () {
+          if (!confirm('Mark ZMW ' + p.amount.toFixed(2) + ' to ' + p.fullName + ' as paid? Only do this after you have sent the money.')) return;
+          api('/api/admin/payouts/' + encodeURIComponent(p.id), { method: 'PATCH', body: JSON.stringify({ status: 'paid' }) }).then(loadPayouts);
+        });
+        s.appendChild(b);
+      }
+      tr.appendChild(s); tb.appendChild(tr);
     });
   }
   $('login').addEventListener('submit', function (e) {

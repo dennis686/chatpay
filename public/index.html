@@ -12,7 +12,7 @@
 <body>
 <header class="nav">
   <a class="logo" href="/">Chat<b>pay</b></a>
-  <a class="btn" href="#apply">Apply now</a>
+  <span><a href="/dashboard.html" style="margin-right:14px">Worker login</a><a class="btn" href="#apply">Apply now</a></span>
 </header>
 
 <main>
@@ -51,7 +51,7 @@
 
 <section id="apply"><div class="wrap">
   <h2>Apply to join</h2>
-  <form id="apply" novalidate>
+  <form id="applyForm" novalidate>
     <div><label for="fullName">Full name</label><input id="fullName" name="fullName" type="text" autocomplete="name" required><span class="err" data-err="fullName"></span></div>
     <div><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" required><span class="err" data-err="email"></span></div>
     <div><label for="phone">Active phone number</label><input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="097 123 4567" required><span class="err" data-err="phone"></span></div>
@@ -67,6 +67,8 @@
       </div><span class="err" data-err="provider"></span></fieldset>
     <div><label for="momoNumber">Mobile money number</label><input id="momoNumber" name="momoNumber" type="tel" placeholder="097 123 4567" required><span class="err" data-err="momoNumber"></span></div>
     <div><label for="momoConfirm">Confirm mobile money number</label><input id="momoConfirm" name="momoConfirm" type="tel" required><span class="err" data-err="momoConfirm"></span></div>
+    <div><label for="password">Create a password (at least 8 characters)</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required><span class="err" data-err="password"></span></div>
+    <div><label for="passwordConfirm">Confirm password</label><input id="passwordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" required><span class="err" data-err="passwordConfirm"></span></div>
     <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div><label class="check"><input type="checkbox" name="consent"> <span>I agree to the <a href="#safety">Terms and Privacy Policy</a>.</span></label><span class="err" data-err="consent"></span></div>
     <div id="msg" role="status" aria-live="polite"></div>
@@ -78,10 +80,10 @@
 <section><div class="wrap two">
   <div class="box"><h3>Payments</h3>
     <p>Earnings are paid to the Airtel Money or MTN MoMo number you register.</p>
-    <p class="note">Payout schedule: __ &nbsp;|&nbsp; Minimum withdrawal: ZMW k1000</p></div>
+    <p class="note">Payout schedule: __ &nbsp;|&nbsp; Minimum withdrawal: ZMW __ (set before launch)</p></div>
   <div class="box" id="faq"><h3>Questions</h3>
     <details><summary>Who can apply?</summary><p>Anyone 18 or older in Zambia who speaks a Zambian language and basic English.</p></details>
-    <details><summary>Is there a cost to join?</summary><p>Yes. Chatpay charges a registration fee of k100.</p></details>
+    <details><summary>Is there a cost to join?</summary><p>No. Chatpay never charges a fee to join or start working.</p></details>
     <details><summary>How do I get paid?</summary><p>By Airtel Money or MTN MoMo, to the number you registered.</p></details>
     <details><summary>How much can I earn?</summary><p>It depends on how many sessions you complete and the quality of your responses. See the pay rates above.</p></details>
   </div>
@@ -89,13 +91,13 @@
 
 <section id="safety"><div class="wrap"><div class="safe">
   <h2>Trust and safety</h2>
-  <p>Chatpay will ask you to pay a registration fee of k100. We will never ask for your mobile money PIN or passwords.</p>
-  <p>Contact: alexcheruu034.com | WhatsApp: +254721327490 |</p>
+  <p>Chatpay will never ask you to pay to join or start working. We will never ask for your mobile money PIN or passwords.</p>
+  <p>Contact: support@chatpay.com | WhatsApp: +260 __ ___ ____ | Registration no.: ______</p>
   <p>We use your details only to review your application and pay you. We follow Zambia's Data Protection Act, 2021, and you can ask us to delete your data at any time.</p>
 </div></div></section>
 </main>
 
-<!-- <a class="btn sticky" href="#apply">Apply now</a> -->
+<a class="btn sticky" href="#apply">Apply now</a>
 <footer>© <span id="year"></span> Chatpay.com &nbsp;|&nbsp; <a href="#safety">Terms</a> &nbsp;|&nbsp; <a href="#safety">Privacy</a> &nbsp;|&nbsp; <a href="mailto:support@chatpay.com">Contact</a></footer>
 <script src="/app.js"></script>
 </body>

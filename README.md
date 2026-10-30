@@ -13,6 +13,12 @@ Open /admin.html and sign in with ADMIN_TOKEN. API routes (header `Authorization
 - PATCH /api/admin/applications/:id   body {"status":"contacted"}  (new|contacted|onboarded|paid|rejected)
 - GET   /api/admin/export.csv
 
+## Worker dashboard
+Workers create a password when they register and sign in at /dashboard.html. They see their status, payout method
+(number partly hidden) and the earnings/bonuses you record. Record them in /admin.html with the "+ earning" / "+ bonus"
+buttons, send the money from your own mobile money account, then press "Mark paid".
+Set SESSION_SECRET (Render generates one from render.yaml). Workers who registered before this update have no password.
+
 ## Deploy on Render
 Use the included render.yaml (New > Blueprint), which creates the web service and the PostgreSQL database.
 ADMIN_TOKEN is generated for you: Render dashboard > chatpay > Environment.
