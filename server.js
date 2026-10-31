@@ -239,15 +239,18 @@ app.post('/api/apply', applyLimiter, async (req, res) => {
   if (Object.keys(errors).length) return res.status(400).json({ ok: false, errors });
 
   try {
+    const newId = crypto.randomUUID();
     await pool.query(
       `INSERT INTO applications (id, full_name, email, phone, age, language, experience, provider, momo_number, pw_hash)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [crypto.randomUUID(), out.fullName, out.email, out.phone, out.age, out.language, out.experience, out.provider, out.momoNumber, hashPw(out.password)]
+      [newId, out.fullName, out.email, out.phone, out.age, out.language, out.experience, out.provider, out.momoNumber, hashPw(out.password)]
     );
     // Send the email in the background; a mail failure must never undo a saved application.
     sendConfirmation(out).catch(e => console.error('Confirmation email failed:', e.message));
+    // Sign the new worker in straight away.
+    if (SECRET) setCookie(req, res, makeSession(newId), 604800);
     const emailOn = !!(process.env.BREVO_API_KEY && process.env.MAIL_FROM_EMAIL);
-    res.status(201).json({ ok: true, message: emailOn
+    res.status(201).json({ ok: true, loggedIn: !!SECRET, message: emailOn
       ? 'Application received. A confirmation email is on its way. We will contact you with the next steps.'
       : 'Application received. We will contact you by email or phone with the next steps.' });
   } catch (e) {

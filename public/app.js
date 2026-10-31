@@ -1,3 +1,20 @@
+// Returning workers (this browser has registered or signed in) see the home page without the Apply buttons.
+(function () {
+  var member = false;
+  try {
+    if (/[?&]new=1/.test(location.search)) localStorage.removeItem('cp_member');
+    member = localStorage.getItem('cp_member') === '1';
+  } catch (e) {}
+  if (!member) return;
+  Array.prototype.forEach.call(document.querySelectorAll('a[href="#apply"]'), function (a) {
+    if (a.parentNode && a.parentNode.className === 'row') {
+      a.textContent = 'Go to my dashboard'; a.setAttribute('href', '/dashboard.html');
+    } else { a.style.display = 'none'; }
+  });
+  var sec = document.getElementById('apply');
+  if (sec) sec.style.display = 'none';
+})();
+
 (function () {
   var form = document.getElementById('applyForm');
   var msg = document.getElementById('msg');
@@ -61,7 +78,11 @@
       })
     }).then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j }; }); })
       .then(function (r) {
-        if (r.j.ok) { form.reset(); msg.className = 'ok'; msg.textContent = r.j.message; msg.scrollIntoView({ block: 'center' }); }
+        if (r.j.ok) {
+          form.reset(); msg.className = 'ok'; msg.textContent = r.j.message; msg.scrollIntoView({ block: 'center' });
+          try { localStorage.setItem('cp_member', '1'); } catch (e) {}
+          if (r.j.loggedIn) { msg.textContent += ' Taking you to your dashboard...'; setTimeout(function () { location.href = '/dashboard.html'; }, 1200); }
+        }
         else if (r.j.errors) { show(r.j.errors); }
         else { msg.className = 'bad'; msg.textContent = r.j.message || 'Something went wrong. Please try again.'; }
       })

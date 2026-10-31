@@ -12,6 +12,7 @@
   function money(n) { return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
   function show(d) {
+    try { localStorage.setItem('cp_member', '1'); } catch (e) {}
     $('login').classList.add('hidden'); $('panel').classList.remove('hidden'); $('logout').classList.remove('hidden');
     $('hello').textContent = 'Hello, ' + d.profile.fullName.split(' ')[0];
     $('status').textContent = d.profile.status;
@@ -67,7 +68,7 @@
       .catch(function () { $('loginErr').textContent = 'Could not connect. Check your internet.'; });
   });
   $('logout').addEventListener('click', function () {
-    fetch('/api/logout', { method: 'POST' }).then(function () { location.reload(); });
+    fetch('/api/logout', { method: 'POST' }).then(function () { location.href = '/'; });
   });
   load();
 })();
