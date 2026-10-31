@@ -1,27 +1,16 @@
-// Sign-in button for everyone; returning workers (this browser has registered or signed in) also lose the Apply buttons.
+// Top bar always shows both Sign in and Apply now. Nothing on the page is hidden.
 (function () {
-  var member = false;
-  try {
-    if (/[?&]new=1/.test(location.search)) localStorage.removeItem('cp_member');
-    member = localStorage.getItem('cp_member') === '1';
-  } catch (e) {}
   var nav = document.querySelector('header.nav');
-  var signIn = nav && nav.querySelector('a[href="/dashboard.html"]');
-  if (nav && !signIn) { signIn = document.createElement('a'); signIn.setAttribute('href', '/dashboard.html'); nav.appendChild(signIn); }
-  var heroBtn = null;
-  if (member) {
-    Array.prototype.forEach.call(document.querySelectorAll('a[href="#apply"]'), function (a) {
-      if (a.parentNode && a.parentNode.className === 'row') { a.setAttribute('href', '/dashboard.html'); heroBtn = a; }
-      else { a.style.display = 'none'; }
-    });
-    var sec = document.getElementById('apply');
-    if (sec) sec.style.display = 'none';
-    if (signIn) { signIn.className = 'btn'; signIn.style.marginRight = ''; }
-  }
-  function label(t) { if (signIn) signIn.textContent = t; if (heroBtn) heroBtn.textContent = t; }
-  label('Sign in');
+  if (!nav) return;
+  var signIn = nav.querySelector('a[href="/dashboard.html"]');
+  var apply = nav.querySelector('a[href="#apply"]');
+  var box = signIn ? signIn.parentNode : nav;
+  if (!signIn) { signIn = document.createElement('a'); signIn.setAttribute('href', '/dashboard.html'); box.appendChild(signIn); }
+  if (!apply) { apply = document.createElement('a'); apply.setAttribute('href', '#apply'); apply.textContent = 'Apply now'; box.appendChild(apply); }
+  signIn.className = 'btn alt'; signIn.style.marginRight = '10px'; signIn.textContent = 'Sign in';
+  apply.className = 'btn';
   // If the worker is already signed in, say so.
-  fetch('/api/me').then(function (r) { if (r.ok) label('My dashboard'); }).catch(function () {});
+  fetch('/api/me').then(function (r) { if (r.ok) signIn.textContent = 'My dashboard'; }).catch(function () {});
 })();
 
 (function () {
@@ -89,7 +78,6 @@
       .then(function (r) {
         if (r.j.ok) {
           form.reset(); msg.className = 'ok'; msg.textContent = r.j.message; msg.scrollIntoView({ block: 'center' });
-          try { localStorage.setItem('cp_member', '1'); } catch (e) {}
           if (r.j.loggedIn) { msg.textContent += ' Taking you to your dashboard...'; setTimeout(function () { location.href = '/dashboard.html'; }, 1200); }
         }
         else if (r.j.errors) { show(r.j.errors); }
