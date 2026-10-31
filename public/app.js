@@ -1,18 +1,27 @@
-// Returning workers (this browser has registered or signed in) see the home page without the Apply buttons.
+// Sign-in button for everyone; returning workers (this browser has registered or signed in) also lose the Apply buttons.
 (function () {
   var member = false;
   try {
     if (/[?&]new=1/.test(location.search)) localStorage.removeItem('cp_member');
     member = localStorage.getItem('cp_member') === '1';
   } catch (e) {}
-  if (!member) return;
-  Array.prototype.forEach.call(document.querySelectorAll('a[href="#apply"]'), function (a) {
-    if (a.parentNode && a.parentNode.className === 'row') {
-      a.textContent = 'Go to my dashboard'; a.setAttribute('href', '/dashboard.html');
-    } else { a.style.display = 'none'; }
-  });
-  var sec = document.getElementById('apply');
-  if (sec) sec.style.display = 'none';
+  var nav = document.querySelector('header.nav');
+  var signIn = nav && nav.querySelector('a[href="/dashboard.html"]');
+  if (nav && !signIn) { signIn = document.createElement('a'); signIn.setAttribute('href', '/dashboard.html'); nav.appendChild(signIn); }
+  var heroBtn = null;
+  if (member) {
+    Array.prototype.forEach.call(document.querySelectorAll('a[href="#apply"]'), function (a) {
+      if (a.parentNode && a.parentNode.className === 'row') { a.setAttribute('href', '/dashboard.html'); heroBtn = a; }
+      else { a.style.display = 'none'; }
+    });
+    var sec = document.getElementById('apply');
+    if (sec) sec.style.display = 'none';
+    if (signIn) { signIn.className = 'btn'; signIn.style.marginRight = ''; }
+  }
+  function label(t) { if (signIn) signIn.textContent = t; if (heroBtn) heroBtn.textContent = t; }
+  label('Sign in');
+  // If the worker is already signed in, say so.
+  fetch('/api/me').then(function (r) { if (r.ok) label('My dashboard'); }).catch(function () {});
 })();
 
 (function () {
